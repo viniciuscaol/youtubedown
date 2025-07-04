@@ -8,17 +8,13 @@ import uuid
 import time
 from flask import Flask, render_template, request, Response, jsonify, send_from_directory, after_this_request
 
-# --- OTIMIZAÇÃO: CONFIGURAÇÃO DOS TRABALHADORES ---
-# Número de downloads simultâneos que serão permitidos.
-# Para um container simples, 2 ou 3 é um bom número para não sobrecarregar a CPU.
+# --- CONFIGURAÇÃO DOS TRABALHADORES ---
 WORKER_COUNT = 3
-# Fila onde os links a serem baixados serão colocados.
 job_queue = queue.Queue()
-# ---------------------------------------------------
 
 # --- CONFIGURAÇÃO GERAL ---
 DOWNLOAD_FOLDER = tempfile.gettempdir()
-MAX_FILE_AGE_SECONDS = 3600 # 1 hora
+MAX_FILE_AGE_SECONDS = 3600
 
 app = Flask(__name__)
 app.config['DOWNLOAD_FOLDER'] = DOWNLOAD_FOLDER
@@ -38,9 +34,7 @@ class YtdlpLogger:
     def warning(self, msg): self.info(f"AVISO: {msg}")
     def error(self, msg): self.info(f"ERRO: {msg}")
 
-
 def baixar_video_thread(url, download_id):
-    """Esta função continua a mesma, fazendo o trabalho pesado de baixar um vídeo."""
     final_filepath = None
     try:
         def progress_hook(d):
@@ -92,20 +86,12 @@ def baixar_video_thread(url, download_id):
             if job_info['completed'] >= job_info['total']:
                 progress_queue.put({"status": "batch_complete"})
 
-
-# --- OTIMIZAÇÃO: FUNÇÃO DO TRABALHADOR ---
 def worker():
-    """Esta é a função que cada trabalhador executa em um loop infinito."""
     while True:
-        # Pega um trabalho (url, id) da fila. Ele espera aqui se a fila estiver vazia.
         url, download_id = job_queue.get()
         print(f"Trabalhador {threading.get_ident()} pegou a tarefa: {url}")
-        # Executa a função de download
         baixar_video_thread(url, download_id)
-        # Informa que a tarefa foi concluída
         job_queue.task_done()
-# ----------------------------------------
-
 
 def cleanup_old_files():
     now = time.time()
@@ -123,7 +109,6 @@ def index():
 
 @app.route('/download', methods=['POST'])
 def download():
-    """Esta rota agora apenas adiciona os links à fila de tarefas."""
     cleanup_old_files()
     data = request.get_json()
     links = data.get('links', [])
@@ -132,15 +117,12 @@ def download():
         job_info['total'] = len(links)
         job_info['completed'] = 0
 
-    # Adiciona cada link como uma tarefa na fila
     for link in links:
         download_id = f"dl-{uuid.uuid4()}"
-        # A interface já cria o item na lista aqui para dar feedback imediato
         progress_queue.put({"id": download_id, "status": "queued", "text": f"Na fila: {link}"})
         job_queue.put((link, download_id))
         
     return jsonify({"status": "success"})
-
 
 @app.route('/get-file/<path:filename>')
 def get_file(filename):
@@ -162,13 +144,12 @@ def stream():
             yield f"data: {json.dumps(data)}\n\n"
     return Response(event_stream(), mimetype='text/event-stream')
 
+# --- MUDANÇA IMPORTANTE: INICIANDO OS TRABALHADORES AQUI ---
+# Este código agora roda quando o Gunicorn importa o arquivo,
+# garantindo que os trabalhadores sejam iniciados.
+for _ in range(WORKER_COUNT):
+    threading.Thread(target=worker, daemon=True).start()
 
+# O bloco abaixo agora serve APENAS para desenvolvimento local
 if __name__ == '__main__':
-    # --- OTIMIZAÇÃO: INICIA OS TRABALHADORES ---
-    # Cria e inicia o número definido de trabalhadores.
-    # Eles rodam em segundo plano, prontos para pegar tarefas da fila.
-    for _ in range(WORKER_COUNT):
-        threading.Thread(target=worker, daemon=True).start()
-    # ------------------------------------------
-    
-    app.run(host='0.0.0.0', port=5000, debug=False)
+    app.run(host='0.0.0.0', port=5000, debug=True)
