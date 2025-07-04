@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>YouTube Downloader</title>
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+    <div class="container">
+        <h1>YouTube Downloader</h1>
+        <p>Cole os links do YouTube abaixo (um por linha) e clique em baixar.</p>
+        
+        <form id="download-form">
+            <textarea id="links" name="links" rows="10" placeholder="http://youtube.com/watch8..."></textarea>
+            <button type="submit" id="submit-btn">Baixar Vídeos</button>
+        </form>
+
+        <h2>Progresso dos Downloads</h2>
+        <div id="progress-container">
+            <ul id="progress-list"></ul>
+        </div>
+    </div>
+
+    <script>
+        document.getElementById('download-form').addEventListener('submit', async function(e) {
+            e.preventDefault();
+
+            const linksText = document.getElementById('links').value;
+            const links = linksText.split('\n').filter(link => link.trim() !== '');
+            const progressList = document.getElementById('progress-list');
+            const submitBtn = document.getElementById('submit-btn');
+
+            if (links.length === 0) {
+                alert('Por favor, insira pelo menos um link.');
+                return;
+            }
+
+            // Limpa a lista de progresso e o campo de texto para a nova sessão
+            progressList.innerHTML = '';
+            document.getElementById('links').value = ''; 
+            submitBtn.disabled = true;
+            submitBtn.textContent = 'Processando...';
+
+            await fetch('/download', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ links: links })
+            });
+
+            const eventSource = new EventSource('/stream');
+
+            eventSource.onmessage = function(event) {
+                const data = JSON.parse(event.data);
+
+                // --- INÍCIO DA LÓGICA PARA REATIVAR O BOTÃO ---
+                if (data.status === 'batch_complete') {
+                    submitBtn.disabled = false;
+                    submitBtn.textContent = 'Baixar Vídeos';
+                    eventSource.close(); // Fecha a conexão, pois o lote terminou
+                    return;
+                }
+                // --- FIM DA LÓGICA ---
+                
+                let progressItem = document.getElementById(data.id);
+                if (!progressItem) {
+                    progressItem = document.createElement('li');
+                    progressItem.id = data.id;
+                    progressItem.innerHTML = `
+                        <div class="status-header">
+                            <span class="status-title"></span>
+                            <progress class="progress-bar" max="100" value="0"></progress>
+                        </div>
+                        <div class="log-details"></div>
+                    `;
+                    progressList.appendChild(progressItem);
+                }
+                
+                const statusTitle = progressItem.querySelector('.status-title');
+                const progressBar = progressItem.querySelector('.progress-bar');
+                const logDetails = progressItem.querySelector('.log-details');
+                
+                progressItem.className = data.status;
+
+                if (data.status === 'downloading') {
+                    progressBar.style.display = 'block';
+                    statusTitle.textContent = data.title;
+                    progressBar.value = data.percentage;
+                } else if (data.status === 'logging') {
+                    logDetails.textContent = data.text;
+                } else {
+                    progressBar.style.display = 'none';
+                    if (data.text) statusTitle.textContent = data.text;
+                }
+
+                if (data.status === 'done') {
+                    progressItem.innerHTML = '';
+                    const downloadLink = document.createElement('a');
+                    downloadLink.href = `/get-file/${encodeURIComponent(data.filename)}`;
+                    downloadLink.textContent = `✅ ${data.text}`;
+                    progressItem.appendChild(downloadLink);
+                }
+            };
+        });
+    </script>
+</body>
+</html>

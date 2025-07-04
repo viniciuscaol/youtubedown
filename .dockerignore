@@ -1,0 +1,36 @@
+# Node modules
+node_modules
+
+# Logs
+logs
+*.log
+npm-debug.log*
+
+# Dependency directories
+jspm_packages/
+
+# Build output
+dist
+build
+
+# Environment files
+.env
+.env.*
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Docker files
+Dockerfile*
+docker-compose*
+
+# Misc
+*.swp
+*.swo
+.idea
+.vscode
+*.tgz
+coverage
+venv/
+*_old

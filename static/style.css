@@ -1,0 +1,126 @@
+body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+    background-color: #121212;
+    color: #e0e0e0;
+    margin: 0;
+    padding: 20px;
+    display: flex;
+    justify-content: center;
+}
+
+.container {
+    width: 100%;
+    max-width: 800px;
+}
+
+h1, h2 {
+    text-align: center;
+    color: #ffffff;
+}
+
+textarea {
+    width: 100%;
+    padding: 10px;
+    box-sizing: border-box;
+    border-radius: 5px;
+    border: 1px solid #444;
+    background-color: #222;
+    color: #e0e0e0;
+    font-size: 1rem;
+    margin-bottom: 15px;
+}
+
+button {
+    width: 100%;
+    padding: 15px;
+    font-size: 1.1rem;
+    font-weight: bold;
+    color: #fff;
+    background-color: #bb0000;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+
+button:disabled {
+    background-color: #555;
+    cursor: not-allowed;
+}
+
+button:hover:not(:disabled) {
+    background-color: #ff0000;
+}
+
+#progress-container {
+    margin-top: 20px;
+    background-color: #1e1e1e;
+    border: 1px solid #333;
+    border-radius: 5px;
+    padding: 15px;
+}
+
+#progress-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+#progress-list li {
+    padding: 12px;
+    border-bottom: 1px solid #333;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+#progress-list li:last-child {
+    border-bottom: none;
+}
+
+.progress-bar {
+    width: 100%;
+    height: 8px;
+    border-radius: 4px;
+    border: none;
+}
+
+/* Cor da barra de progresso */
+progress::-webkit-progress-bar {
+    background-color: #444;
+    border-radius: 4px;
+}
+progress::-webkit-progress-value {
+    background-color: #5cb85c;
+    border-radius: 4px;
+    transition: width 0.1s linear;
+}
+progress::-moz-progress-bar {
+    background-color: #5cb85c;
+    border-radius: 4px;
+}
+
+/* Cores do texto de status */
+.starting { color: #ccc; }
+.downloading { color: #f0ad4e; }
+.done a { color: #5cb85c; text-decoration: none; font-weight: bold; }
+.done a:hover { text-decoration: underline; }
+.error { color: #d9534f; font-weight: bold;}
+
+.status-header {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.status-title {
+    font-weight: bold;
+}
+
+.log-details {
+    font-family: 'Courier New', Courier, monospace;
+    font-size: 0.8rem;
+    color: #999;
+    margin-top: 5px;
+    white-space: pre-wrap; /* Permite que o texto do log quebre a linha */
+}
